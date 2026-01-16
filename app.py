@@ -2,6 +2,36 @@ import streamlit as st
 import pandas as pd
 import re
 from transformers import pipeline
+import streamlit as st
+
+# --- PASSWORD CHECK ---
+def check_password():
+    """Returns True if the user had the correct password."""
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if st.session_state["password_correct"]:
+        return True
+
+    # Show input for password
+    placeholder = st.empty()
+    with placeholder.container():
+        st.write("## 🔒 Access Restricted")
+        password = st.text_input("Enter the password to use this tool", type="password")
+        if st.button("Log In"):
+            # This 'password' key is what you will set in the Streamlit Cloud dashboard
+            if password == st.secrets["password"]:
+                st.session_state["password_correct"] = True
+                placeholder.empty() # Clear the login form
+                st.rerun()
+            else:
+                st.error("😕 Password incorrect")
+    return False
+
+if not check_password():
+    st.stop() # Stop the app here if not logged in
+
+
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Job Scope Analyser", layout="wide")
