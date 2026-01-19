@@ -1,0 +1,16 @@
+# --- Python & Environment ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- Data & Output (Ignore these to keep Git fast and secure) ---
+dtcExtract.xlsx
+dataset/
+reports/
+
+# --- IDE Config ---
+.vscode/
+
+# --- OS Specific junk ---
+.DS_Store
+Thumbs.db
