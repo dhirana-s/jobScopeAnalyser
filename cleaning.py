@@ -65,7 +65,10 @@ def run_cleaning(uploaded_file, date_range=None):
     
     # 1. Date Filtering Logic
     df = df.with_columns(
-        pl.col("jobOpening_submittedAt").cast(pl.Datetime).alias("submitted_at_dt")
+        pl.col("jobOpening_submittedAt")
+        .str.to_date("%m/%d/%Y") # Explicitly tells Polars to read Month/Day/Year
+        .cast(pl.Datetime)        # Casts to Datetime for filtering compatibility
+        .alias("submitted_at_dt")
     )
     if date_range and len(date_range) == 2:
         start_date, end_date = date_range

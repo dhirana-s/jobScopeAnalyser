@@ -530,8 +530,8 @@ def run_full_pipeline(uploaded_file, skill_extractor, date_range):
     return results
 
 # --- 4. UI LAYOUT ---
-st.title("🚀 Tech Career Skill Evolution Tool")
-st.markdown("Analyze market trajectories from Junior to Senior levels based on job application data.")
+st.title("🚀 Job Posting Analysis Tool")
+st.markdown("Analyze role scope trajectories from Junior to Senior levels based on job posting data.")
 
 with st.sidebar:
     st.header("1. Data Upload & Filters")
