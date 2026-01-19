@@ -1,42 +1,42 @@
-import polars as pl
-import os
+# import polars as pl
+# import os
 
-# 1. Define Paths 
-# Since dtcExtract.xlsx is in the SAME folder as this script, just use the name!
-input_path = "dtcExtract.xlsx" 
-output_dir = "dataset"
-output_file = os.path.join(output_dir, "cleaned_file.csv")
+# # 1. Define Paths 
+# # Since dtcExtract.xlsx is in the SAME folder as this script, just use the name!
+# input_path = "dtcExtract.xlsx" 
+# output_dir = "dataset"
+# output_file = os.path.join(output_dir, "cleaned_file.csv")
 
-# 2. Load the specific sheet using 'calamine'
-df = pl.read_excel(
-    input_path, 
-    sheet_name="jobApplications_FY24",
-    engine="calamine"
-)
+# # 2. Load the specific sheet using 'calamine'
+# df = pl.read_excel(
+#     input_path, 
+#     sheet_name="jobApplications_FY24",
+#     engine="calamine"
+# )
 
-# 3. Apply Cleaning Logic
-cleaned_df = (
-    df.with_columns(
-        # Standardize jobOpening_profession
-        pl.col("jobOpening_profession")
-        .str.replace(r"SOFTWARE_ENGINEER_.*", "SOFTWARE_ENGINEER"),
+# # 3. Apply Cleaning Logic
+# cleaned_df = (
+#     df.with_columns(
+#         # Standardize jobOpening_profession
+#         pl.col("jobOpening_profession")
+#         .str.replace(r"SOFTWARE_ENGINEER_.*", "SOFTWARE_ENGINEER"),
         
-        # Map experience levels
-        pl.col("jobOpening_workExperienceYears").replace({
-            "NO_EXPERIENCE": "Junior",
-            "ONE_TWO_YEARS": "Junior",
-            "THREE_FIVE_YEARS": "Mid-level",
-            "SIX_TEN_YEARS": "Senior",
-            "GREATER_TEN_YEARS": "Senior"
-        })
-    )
-)
+#         # Map experience levels
+#         pl.col("jobOpening_workExperienceYears").replace({
+#             "NO_EXPERIENCE": "Junior",
+#             "ONE_TWO_YEARS": "Junior",
+#             "THREE_FIVE_YEARS": "Mid-level",
+#             "SIX_TEN_YEARS": "Senior",
+#             "GREATER_TEN_YEARS": "Senior"
+#         })
+#     )
+# )
 
-# 4. Save to CSV
-os.makedirs(output_dir, exist_ok=True)
-cleaned_df.write_csv(output_file)
+# # 4. Save to CSV
+# os.makedirs(output_dir, exist_ok=True)
+# cleaned_df.write_csv(output_file)
 
-print(f"Success! Cleaned file saved to: {output_file}")
+# print(f"Success! Cleaned file saved to: {output_file}")
 
 
 
