@@ -9,3 +9,5 @@ beautifulsoup4
 openpyxl
 python-calamine
 fastexcel
+matplotlib
+seaborn
