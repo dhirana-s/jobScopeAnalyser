@@ -1,11 +1,11 @@
 streamlit
 polars
 pandas
+plotly
 transformers
 torch
-tf-keras
 thefuzz
 beautifulsoup4
 openpyxl
-calamine
-plotly
+python-calamine
+fastexcel
