@@ -398,11 +398,46 @@ def run_analysis(df):
     })
     ).filter(~pl.col("skills_found").is_in(STOP_WORDS))
 
-    # 2. Aggregation & Normalization
-    patterns = df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears", "skills_found"]).len()
-    totals = patterns.group_by([PROFESSION_COL, "jobOpening_workExperienceYears"]).agg(pl.sum("len").alias("total"))
-    df_norm = patterns.join(totals, on=[PROFESSION_COL, "jobOpening_workExperienceYears"])
-    df_norm = df_norm.with_columns((pl.col("len") / pl.col("total") * 100).alias("share_pct"))
+
+
+
+
+
+
+
+
+    # NEW FIXITYYYY
+
+    # 2a. Calculate THE TRUE DENOMINATOR (Unique Job Postings per Level)
+    # We look at the original df before exploding to find how many unique jobs exist
+    unique_jobs_per_level = (
+        df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears"])
+        .agg(pl.col("jobOpening_serialNumber").n_unique().alias("total_unique_jobs"))
+    )
+
+    # 2b. Calculate THE NUMERATOR (How many unique jobs have this specific skill?)
+    patterns = (
+        df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears", "skills_found"])
+        .agg(pl.col("jobOpening_serialNumber").n_unique().alias("jobs_with_skill"))
+    )
+
+    # 2c. Join and calculate Share % based on unique jobs
+    df_norm = patterns.join(
+        unique_jobs_per_level, 
+        on=[PROFESSION_COL, "jobOpening_workExperienceYears"], 
+        how="left"
+    ).with_columns(
+        (pl.col("jobs_with_skill") / pl.col("total_unique_jobs") * 100).alias("share_pct")
+    )
+
+    # END OF NEW FIXITYY
+
+
+    # # 2. Aggregation & Normalization
+    # patterns = df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears", "skills_found"]).len()
+    # totals = patterns.group_by([PROFESSION_COL, "jobOpening_workExperienceYears"]).agg(pl.sum("len").alias("total"))
+    # df_norm = patterns.join(totals, on=[PROFESSION_COL, "jobOpening_workExperienceYears"])
+    # df_norm = df_norm.with_columns((pl.col("len") / pl.col("total") * 100).alias("share_pct"))
 
     # 3. Evolution Helper
     def get_ev(prof):
