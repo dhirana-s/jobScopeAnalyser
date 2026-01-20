@@ -637,11 +637,11 @@ if 'final_data' in st.session_state:
         st.markdown("""
         This table tracks the **Market Share** of specific skills across different seniority levels.
         
-        * **Junior / Mid-level / Senior**: These columns represent the percentage of job postings at that level that require the skill. (Eg. In the 'Senior' category, X%% of job postings require this specific skill.)
+        * **Junior / Mid-level / Senior**: These columns represent the percentage of job postings at that level that require the skill. (Eg. In the 'Senior' category, X% of job postings require this specific skill.)
         * **Junior_to_Senior_Diff**: The absolute change in market share via Senior% - Junior%
             * *Positive (+)*: This skill is more common among Senior job postings. (eg. if 'Cloud computing' has a +30%, it proves that this skill is a requirement to move up the career ladder from Junior to Senior job roles.)
             * *Negative (-)*: This skill is more common among Junior job postings. It's a "Gatekeeper" skill—vital for entry but assumed or less emphasized at senior levels.
-        * **Total_Rel_Change_Pct**: The growth rate of the skill's importance as defined by [(Senior-Junior)/Junior]x100. Hence it is calculating relative growth ie. shows how much faster a skill grows in importance compared to where it started. (eg. an absolute difference might be small like 5%% but if the Total_Rel_Change_Pct is 400%, it means that the skill is almost exclusively found in Senior job postings.)
+        * **Total_Rel_Change_Pct**: The growth rate of the skill's importance as defined by [(Senior-Junior)/Junior]x100. Hence it is calculating relative growth ie. shows how much faster a skill grows in importance compared to where it started. (eg. an absolute difference might be small like 5% but if the Total_Rel_Change_Pct is 400%, it means that the skill is almost exclusively found in Senior job postings.)
             * 🟩 **Green (High %)**: Explosive growth in demand as seniority increases.
             * 🟥 **Red (Negative %)**: Sharp decline in explicit mentions as you move toward Senior roles.
         """)
