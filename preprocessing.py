@@ -354,7 +354,6 @@ def run_preprocessing(df, skill_extractor):
     if PROFESSION_COL not in df.columns:
         df = df.rename({"jobOpening_profession": PROFESSION_COL})
     
-    df = df.filter(pl.col(PROFESSION_COL).is_in(TARGET_PROFESSIONS)).unique(subset=["jobOpening_serialNumber"])
     df = df.with_columns(pl.col("jobOpening_jobScope").map_elements(clean_html_to_text, return_dtype=pl.String).alias("clean_text"))
 
     # BERT Extraction
