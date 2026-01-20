@@ -707,13 +707,242 @@
 
 
 
-#SNOWFLAKE + XAI
-# SNOWFLAKE
+# #SNOWFLAKE + XAI
+# # SNOWFLAKE
+# import streamlit as st
+# import polars as pl
+# import pandas as pd
+# import plotly.express as px
+# import time
+# from transformers import pipeline
+
+# # Import your custom modules
+# import cleaning
+# import preprocessing
+# import analysis
+
+# # --- 1. APP CONFIGURATION & STYLING ---
+# st.set_page_config(page_title="Career Skill Evolution Pro", layout="wide", page_icon="🚀")
+
+# st.markdown("""
+#     <style>
+#     .main { background-color: #f5f7f9; }
+#     .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+#     footer {visibility: hidden;}
+#     </style>
+#     """, unsafe_allow_html=True)
+
+# # --- 2. MODEL LOADING (CACHED) ---
+# @st.cache_resource
+# def load_bert_model():
+#     return pipeline(
+#         "ner", 
+#         model="Nucha/Nucha_ITSkillNER_BERT", 
+#         aggregation_strategy="simple",
+#         device=-1 
+#     )
+
+# # --- 3. PIPELINE ORCHESTRATOR ---
+# def run_full_pipeline(uploaded_file, skill_extractor, date_range):
+#     cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
+#     raw_extracted = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
+    
+#     # Catch the standardized_df from analysis
+#     results, standardized_df = analysis.run_analysis(raw_extracted, true_totals)
+    
+#     return results, true_totals, standardized_df, cleaned_df
+
+
+# # def run_full_pipeline(uploaded_file, skill_extractor, date_range):
+# #     # Stage 1: Returns TWO items now
+# #     cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
+    
+# #     # Stage 2: Preprocessing
+# #     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
+    
+# #     # Stage 3: Analysis now uses the true_totals
+# #     results = analysis.run_analysis(patterns, true_totals)
+    
+# #     # FIX: Return true_totals and patterns for Explainability
+# #     return results, true_totals, patterns
+
+
+
+
+
+
+
+
+
+# # --- 4. UI LAYOUT ---
+# st.title("🚀 Job Posting Analysis Tool")
+# st.markdown("Analyze role scope trajectories from Junior to Senior levels based on job posting data.")
+
+# with st.sidebar:
+#     st.header("1. Data Upload & Filters")
+#     uploaded_file = st.file_uploader("Choose Excel File (dtcExtract.xlsx)", type="xlsx")
+    
+#     selected_dates = st.date_input(
+#         "Application Date Range",
+#         value=(pd.to_datetime("2024-01-01"), pd.to_datetime("2024-12-31")),
+#         format="DD/MM/YYYY"
+#     )
+    
+#     st.divider()
+#     if st.button("🔄 Reset System", use_container_width=True):
+#         st.session_state.clear()
+#         st.rerun()
+
+# # --- 5. EXECUTION CONTROLS ---
+# if uploaded_file and 'final_data' not in st.session_state:
+#     if st.button("⚡ Run Full Analysis Pipeline", use_container_width=True):
+#         with st.spinner("Initializing AI Model..."):
+#             skill_extractor = load_bert_model()
+            
+#         with st.status("🛠️ Processing Career Pipeline...", expanded=True) as status:
+#             st.write("Step 1: Cleaning & Experience Mapping...")
+#             # Pipeline now returns 3 objects
+#             results, true_totals, raw_patterns = run_full_pipeline(uploaded_file, skill_extractor, selected_dates)
+            
+#             st.session_state['final_data'] = results
+#             st.session_state['true_totals'] = true_totals
+#             st.session_state['raw_patterns'] = raw_patterns
+#             status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
+            
+#         st.balloons()
+
+# # --- 6. DASHBOARD VISUALIZATION ---
+# if 'final_data' in st.session_state:
+#     data_dict = st.session_state['final_data']
+#     true_totals = st.session_state['true_totals']
+#     raw_patterns = st.session_state['raw_patterns']
+    
+#     st.sidebar.header("2. Dashboard Filters")
+#     selected_prof = st.sidebar.selectbox("Select Profession", list(data_dict.keys()))
+#     top_n = st.sidebar.slider("Number of Skills to Show", 10, 100, 50)
+
+#     # --- XAI SECTION: RAW COUNTS ---
+#     st.subheader("📊 Data Transparency (The Denominators)")
+#     t_cols = st.columns(3)
+#     # Filter totals for selected profession
+#     prof_totals = true_totals.filter(pl.col("jobOpening_professionFinal") == selected_prof)
+    
+#     for i, level in enumerate(["Junior", "Mid-level", "Senior"]):
+#         count = prof_totals.filter(pl.col("jobOpening_workExperienceYears") == level)["total_unique_jobs"].sum()
+#         t_cols[i].metric(f"Total {level} Postings", f"{count} ads")
+    
+#     st.divider()
+
+#     # --- MAIN CHART ---
+#     full_df = data_dict[selected_prof]
+#     st.subheader(f"📈 Skill Trajectory: {selected_prof}")
+#     target_skill = st.selectbox("Analyze Career Path for Skill:", full_df["skills_found"].to_list())
+    
+#     skill_row = full_df.filter(pl.col("skills_found") == target_skill)
+#     if not skill_row.is_empty():
+#         plot_df = pd.DataFrame({
+#             "Level": ["Junior", "Mid-level", "Senior"],
+#             "Market Share (%)": [
+#                 float(skill_row["Junior"][0]), 
+#                 float(skill_row["Mid-level"][0]), 
+#                 float(skill_row["Senior"][0])
+#             ]
+#         })
+#         fig = px.line(plot_df, x="Level", y="Market Share (%)", markers=True, text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]])
+#         st.plotly_chart(fig, use_container_width=True)
+
+#     # --- XAI SECTION: EVIDENCE VIEWER ---
+#     with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
+#     # Filter the STANDARDIZED data
+#         evidence = raw_patterns.filter(
+#             (pl.col("skills_found") == target_skill) & 
+#             (pl.col("jobOpening_professionFinal") == selected_prof)
+#         ).select([
+#             "jobOpening_serialNumber", 
+#             "jobOpening_title", 
+#             "jobOpening_workExperienceYears", 
+#             "clean_text"
+#         ])
+        
+#         st.write(f"Showing **{len(evidence)}** job(s) where the AI detected **'{target_skill}'**:")
+#         st.dataframe(evidence.to_pandas(), width="stretch")
+
+
+#     # with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
+#     #     st.write(f"Showing raw text snippets where the AI found **{target_skill}**:")
+#     #     evidence = raw_patterns.filter(
+#     #         (pl.col("skills_found") == target_skill) & 
+#     #         (pl.col("jobOpening_professionFinal") == selected_prof)
+#     #     ).select(["jobOpening_serialNumber", "jobOpening_workExperienceYears", "clean_text"]).head(5)
+#     #     st.dataframe(evidence.to_pandas(), use_container_width=True)
+
+#     # --- STRATEGIC INSIGHTS ---
+#     st.divider()
+#     st.subheader("💡 Strategic Insights")
+#     col1, col2, col3 = st.columns(3)
+#     # ... (Your existing Strategic Insights code here) ...
+
+#     # --- FULL DATA TABLE ---
+#     st.subheader("🔍 Full Evolution Matrix")
+#     st.dataframe(full_df.head(top_n).to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), use_container_width=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#SWITCHED WORKBOOKS
+# SNOWFLAKE + XAI
 import streamlit as st
 import polars as pl
 import pandas as pd
 import plotly.express as px
-import time
 from transformers import pipeline
 
 # Import your custom modules
@@ -744,21 +973,22 @@ def load_bert_model():
 
 # --- 3. PIPELINE ORCHESTRATOR ---
 def run_full_pipeline(uploaded_file, skill_extractor, date_range):
-    # Stage 1: Returns TWO items now
+    # Stage 1: Cleaning & Absolute Truth
     cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
     
     # Stage 2: Preprocessing
     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
     
-    # Stage 3: Analysis now uses the true_totals
-    results = analysis.run_analysis(patterns, true_totals)
+    # Stage 3: Analysis
+    # UPDATED: Catch both the results_dict AND the standardized df
+    results_dict, standardized_df = analysis.run_analysis(patterns, true_totals)
     
-    # FIX: Return true_totals and patterns for Explainability
-    return results, true_totals, patterns
+    # Return the standardized_df instead of 'patterns' to ensure the XAI table works!
+    return results_dict, true_totals, standardized_df
 
 # --- 4. UI LAYOUT ---
 st.title("🚀 Job Posting Analysis Tool")
-st.markdown("Analyze role scope trajectories from Junior to Senior levels based on job posting data.")
+st.markdown("Analyze role scope trajectories across all professions found in the `jobOpenings` data.")
 
 with st.sidebar:
     st.header("1. Data Upload & Filters")
@@ -782,14 +1012,14 @@ if uploaded_file and 'final_data' not in st.session_state:
             skill_extractor = load_bert_model()
             
         with st.status("🛠️ Processing Career Pipeline...", expanded=True) as status:
-            st.write("Step 1: Cleaning & Experience Mapping...")
-            # Pipeline now returns 3 objects
+            st.write("Step 1: Cleaning, Status Filtering & Experience Mapping...")
+            
+            # This now receives (results_dict, true_totals, standardized_df)
             results, true_totals, raw_patterns = run_full_pipeline(uploaded_file, skill_extractor, selected_dates)
             
             st.session_state['final_data'] = results
             st.session_state['true_totals'] = true_totals
             st.session_state['raw_patterns'] = raw_patterns
-            status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
             
         st.balloons()
 
@@ -800,54 +1030,168 @@ if 'final_data' in st.session_state:
     raw_patterns = st.session_state['raw_patterns']
     
     st.sidebar.header("2. Dashboard Filters")
-    selected_prof = st.sidebar.selectbox("Select Profession", list(data_dict.keys()))
+    # Dynamically list every profession processed
+    prof_list = sorted(list(data_dict.keys()))
+    selected_prof = st.sidebar.selectbox("Select Profession", prof_list)
     top_n = st.sidebar.slider("Number of Skills to Show", 10, 100, 50)
 
     # --- XAI SECTION: RAW COUNTS ---
-    st.subheader("📊 Data Transparency (The Denominators)")
+    st.subheader(f"📊 {selected_prof} Data Transparency")
+    st.markdown("""
+        <style>
+        .metric-card {
+            background-color: #003366; /* Dark Blue */
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white; /* White Text */
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .metric-label {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #d1d1d1; /* Light gray for the label */
+        }
+        .metric-value {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     t_cols = st.columns(3)
-    # Filter totals for selected profession
+    
+    # Filter the 'Absolute Truth' totals for the selected profession
     prof_totals = true_totals.filter(pl.col("jobOpening_professionFinal") == selected_prof)
     
-    for i, level in enumerate(["Junior", "Mid-level", "Senior"]):
-        count = prof_totals.filter(pl.col("jobOpening_workExperienceYears") == level)["total_unique_jobs"].sum()
-        t_cols[i].metric(f"Total {level} Postings", f"{count} ads")
+    levels = ["Junior", "Mid-level", "Senior"]
+    for i, level in enumerate(levels):
+        count_row = prof_totals.filter(pl.col("jobOpening_workExperienceYears") == level)
+        count = count_row["total_unique_jobs"].sum() if not count_row.is_empty() else 0
+        # t_cols[i].metric(f"Total {level} Postings", f"{count} jobs")
+        # 2. Use st.markdown to create the colored card instead of st.metric
+        with t_cols[i]:
+            st.markdown(f"""
+                <div class="metric-card">
+                    <div class="metric-label">Total {level} Postings</div>
+                    <div class="metric-value">{count} jobs</div>
+                </div>
+            """, unsafe_allow_html=True)
     
     st.divider()
 
     # --- MAIN CHART ---
     full_df = data_dict[selected_prof]
     st.subheader(f"📈 Skill Trajectory: {selected_prof}")
-    target_skill = st.selectbox("Analyze Career Path for Skill:", full_df["skills_found"].to_list())
     
-    skill_row = full_df.filter(pl.col("skills_found") == target_skill)
-    if not skill_row.is_empty():
-        plot_df = pd.DataFrame({
-            "Level": ["Junior", "Mid-level", "Senior"],
-            "Market Share (%)": [
-                float(skill_row["Junior"][0]), 
-                float(skill_row["Mid-level"][0]), 
-                float(skill_row["Senior"][0])
-            ]
-        })
-        fig = px.line(plot_df, x="Level", y="Market Share (%)", markers=True, text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]])
-        st.plotly_chart(fig, use_container_width=True)
+    if not full_df.is_empty():
+        target_skill = st.selectbox("Analyze Career Path for Skill:", full_df["skills_found"].to_list())
+        
+        skill_row = full_df.filter(pl.col("skills_found") == target_skill)
+        if not skill_row.is_empty():
+            plot_df = pd.DataFrame({
+                "Level": ["Junior", "Mid-level", "Senior"],
+                "Market Share (%)": [
+                    float(skill_row["Junior"][0]), 
+                    float(skill_row["Mid-level"][0]), 
+                    float(skill_row["Senior"][0])
+                ]
+            })
+            fig = px.line(
+                plot_df, x="Level", y="Market Share (%)", 
+                markers=True, 
+                text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]],
+                template="plotly_white"
+            )
+            fig.update_traces(line_color='#636EFA', line_width=3)
+            st.plotly_chart(fig, use_container_width=True)
 
-    # --- XAI SECTION: EVIDENCE VIEWER ---
-    with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
-        st.write(f"Showing raw text snippets where the AI found **{target_skill}**:")
-        evidence = raw_patterns.filter(
-            (pl.col("skills_found") == target_skill) & 
-            (pl.col("jobOpening_professionFinal") == selected_prof)
-        ).select(["jobOpening_serialNumber", "jobOpening_workExperienceYears", "clean_text"]).head(5)
-        st.dataframe(evidence.to_pandas(), use_container_width=True)
+        # --- XAI SECTION: EVIDENCE VIEWER ---
+        with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
+            st.write(f"Showing evidence for **{selected_prof}** requiring **{target_skill}**")
 
-    # --- STRATEGIC INSIGHTS ---
-    st.divider()
-    st.subheader("💡 Strategic Insights")
-    col1, col2, col3 = st.columns(3)
-    # ... (Your existing Strategic Insights code here) ...
 
-    # --- FULL DATA TABLE ---
-    st.subheader("🔍 Full Evolution Matrix")
-    st.dataframe(full_df.head(top_n).to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), use_container_width=True)
+            
+            # --- STEP 1: DEFINE THE BASE EVIDENCE DATASET ---
+            # This was missing in your current code!
+            evidence = raw_patterns.filter(
+                (pl.col("skills_found") == target_skill) & 
+                (pl.col("jobOpening_professionFinal") == selected_prof)
+            ).select(["jobOpening_serialNumber", "jobOpening_title", "jobOpening_workExperienceYears", "clean_text"]).unique(subset=["jobOpening_serialNumber"])
+
+            # --- STEP 2: ADD FILTER UI ---
+            col_f1, col_f2 = st.columns([1, 2])
+            with col_f1:
+                # Filter by Experience Level within this specific skill
+                levels_in_evidence = ["All"] + sorted(evidence["jobOpening_workExperienceYears"].unique().to_list())
+                selected_level = st.selectbox("Filter by Level", levels_in_evidence, key="xai_level_filter")
+            
+            with col_f2:
+                # Filter by keyword in the Job Title or Text
+                search_query = st.text_input("Search within these results", placeholder="e.g. Fintech, Remote...", key="xai_search")
+
+            # --- STEP 3: APPLY INTERACTIVE FILTERS ---
+            filtered_evidence = evidence
+            if selected_level != "All":
+                filtered_evidence = filtered_evidence.filter(pl.col("jobOpening_workExperienceYears") == selected_level)
+            
+            if search_query:
+                filtered_evidence = filtered_evidence.filter(
+                    pl.col("jobOpening_title").str.contains(f"(?i){search_query}") | 
+                    pl.col("clean_text").str.contains(f"(?i){search_query}")
+                )
+
+            # --- STEP 4: DISPLAY TABLE ---
+            st.dataframe(filtered_evidence.to_pandas(), use_container_width=True)
+            st.caption(f"Showing {len(filtered_evidence)} rows after filtering.")
+
+
+        # with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
+        #     st.write(f"Showing raw text snippets for **{selected_prof}** where the AI found **{target_skill}**:")
+        #     evidence = raw_patterns.filter(
+        #         (pl.col("skills_found") == target_skill) & 
+        #         (pl.col("jobOpening_professionFinal") == selected_prof)
+        #     ).select(["jobOpening_serialNumber", "jobOpening_title", "jobOpening_workExperienceYears", "clean_text"]).head(9999)
+        #     st.dataframe(evidence.to_pandas(), use_container_width=True)
+
+        # --- STRATEGIC INSIGHTS ---
+        st.divider()
+        st.subheader("💡 Insights Summary")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Top Emerging (High Senior Demand):**")
+            emerging = full_df.sort("Junior_to_Senior_Diff", descending=True).head(5)
+            st.dataframe(emerging[["skills_found", "Junior", "Senior", "Junior_to_Senior_Diff"]].to_pandas())
+
+        with col2:
+            st.write("**Core Requirements (High Junior Demand):**")
+            core = full_df.sort("Junior", descending=True).head(5)
+            st.dataframe(core[["skills_found", "Junior", "Senior"]].to_pandas())
+
+        # --- FULL DATA TABLE ---
+        st.subheader("🔍 Insights Detailed")
+        st.dataframe(
+            full_df.head(top_n).to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), 
+            use_container_width=True
+        )
+    else:
+        st.warning(f"No skill data found for {selected_prof} after filtering.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

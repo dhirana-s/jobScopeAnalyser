@@ -329,6 +329,104 @@
 
 
 
+# #SNOWFLAKE
+# import polars as pl
+# import re
+# from thefuzz import process, fuzz
+# from bs4 import BeautifulSoup
+
+# def clean_html_to_text(html):
+#     if not html: return ""
+#     return BeautifulSoup(html, "html.parser").get_text(separator=" ")
+
+# def clean_extracted_token(skill_text):
+#     if not skill_text: return None
+#     clean = skill_text.replace("##", "").strip().lower()
+#     clean = re.sub(r'[^a-z0-9\s\+\#\.]', '', clean)
+#     if len(clean) < 2 or clean.isdigit(): return None
+#     return " ".join(clean.split())
+
+# def run_preprocessing(df, skill_extractor):
+#     PROFESSION_COL = 'jobOpening_professionFinal'
+#     TARGET_PROFESSIONS = ['SOFTWARE_ENGINEER', 'AI_ENGINEER']
+
+#     # Rename and Filter
+#     if PROFESSION_COL not in df.columns:
+#         df = df.rename({"jobOpening_profession": PROFESSION_COL})
+    
+#     df = df.with_columns(pl.col("jobOpening_jobScope").map_elements(clean_html_to_text, return_dtype=pl.String).alias("clean_text"))
+
+#     # BERT Extraction
+#     unique_texts_df = df.select("clean_text").unique().drop_nulls()
+#     unique_results = []
+#     for text in unique_texts_df["clean_text"].to_list():
+#         words = text.split()
+#         chunks = [" ".join(words[i:i + 300]) for i in range(0, len(words), 300)]
+#         aggregated_skills = set()
+#         for chunk in chunks:
+#             results = skill_extractor(chunk)
+#             for res in results:
+#                 if res['entity_group'] in ['HSKILL', 'SSKILL']:
+#                     skill = clean_extracted_token(res['word'])
+#                     if skill: aggregated_skills.add(skill)
+#         unique_results.append(list(aggregated_skills))
+
+#     unique_mapping_df = unique_texts_df.with_columns(pl.Series("raw_skills", unique_results))
+#     df = df.join(unique_mapping_df, on="clean_text", how="left")
+
+#     # Fuzzy Deduplication
+#     all_found = df.select(pl.col("raw_skills").flatten()).unique().to_series().to_list()
+#     mapping, processed = {}, set()
+#     for skill in sorted([s for s in all_found if s], key=len):
+#         if skill in processed: continue
+#         processed.add(skill)
+#         mapping[skill] = skill
+#         candidates = [c for c in all_found if c not in processed]
+#         if candidates:
+#             match = process.extractOne(skill, candidates, scorer=fuzz.ratio)
+#             if match and match[1] >= 92:
+#                 mapping[match[0]] = skill
+#                 processed.add(match[0])
+
+#     return df.explode("raw_skills").with_columns(pl.col("raw_skills").replace(mapping).alias("skills_found")).drop_nulls("skills_found")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#SWITCHED WORKBOOKS
 #SNOWFLAKE
 import polars as pl
 import re
@@ -348,9 +446,8 @@ def clean_extracted_token(skill_text):
 
 def run_preprocessing(df, skill_extractor):
     PROFESSION_COL = 'jobOpening_professionFinal'
-    TARGET_PROFESSIONS = ['SOFTWARE_ENGINEER', 'AI_ENGINEER']
+    # REMOVED: TARGET_PROFESSIONS filter
 
-    # Rename and Filter
     if PROFESSION_COL not in df.columns:
         df = df.rename({"jobOpening_profession": PROFESSION_COL})
     
