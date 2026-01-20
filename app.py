@@ -479,6 +479,235 @@
 
 
 
+# # SNOWFLAKE
+# import streamlit as st
+# import polars as pl
+# import pandas as pd
+# import plotly.express as px
+# import time
+# from transformers import pipeline
+
+# # Import your custom modules
+# import cleaning
+# import preprocessing
+# import analysis
+
+# # --- 1. APP CONFIGURATION & STYLING ---
+# st.set_page_config(page_title="Career Skill Evolution Pro", layout="wide", page_icon="🚀")
+
+# st.markdown("""
+#     <style>
+#     .main { background-color: #f5f7f9; }
+#     .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+#     footer {visibility: hidden;}
+#     </style>
+#     """, unsafe_allow_html=True)
+
+# # --- 2. MODEL LOADING (CACHED) ---
+# @st.cache_resource
+# def load_bert_model():
+#     """Loads the BERT NER model once and keeps it in memory."""
+#     return pipeline(
+#         "ner", 
+#         model="Nucha/Nucha_ITSkillNER_BERT", 
+#         aggregation_strategy="simple",
+#         device=-1 
+#     )
+
+# # # --- 3. PIPELINE ORCHESTRATOR ---
+# # def run_full_pipeline(uploaded_file, skill_extractor, date_range):
+# #     """Executes the modular pipeline sequentially."""
+    
+# #     # Stage 1: Cleaning & Date Filtering
+# #     cleaned_df = cleaning.run_cleaning(uploaded_file, date_range)
+    
+# #     # Stage 2: Preprocessing (BERT extraction & Fuzzy matching)
+# #     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
+    
+# #     # Stage 3: Analysis (Career Evolution Metrics)
+# #     results = analysis.run_analysis(patterns)
+    
+# #     return results
+
+
+# def run_full_pipeline(uploaded_file, skill_extractor, date_range):
+#     # Stage 1: Returns TWO items now
+#     cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
+    
+#     # Stage 2: Preprocessing
+#     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
+    
+#     # Stage 3: Analysis now uses the true_totals
+#     results = analysis.run_analysis(patterns, true_totals)
+    
+#     return results
+
+# # --- 4. UI LAYOUT ---
+# st.title("🚀 Job Posting Analysis Tool")
+# st.markdown("Analyze role scope trajectories from Junior to Senior levels based on job posting data.")
+
+# with st.sidebar:
+#     st.header("1. Data Upload & Filters")
+#     uploaded_file = st.file_uploader("Choose Excel File (dtcExtract.xlsx)", type="xlsx")
+    
+#     # Date Range Filter
+#     selected_dates = st.date_input(
+#         "Application Date Range",
+#         value=(pd.to_datetime("2024-01-01"), pd.to_datetime("2024-12-31")),
+#         format="DD/MM/YYYY"
+#     )
+    
+#     st.divider()
+#     if st.button("🔄 Reset System", use_container_width=True):
+#         st.session_state.clear()
+#         st.rerun()
+
+# # --- 5. EXECUTION CONTROLS ---
+# if uploaded_file and 'final_data' not in st.session_state:
+#     if st.button("⚡ Run Full Analysis Pipeline", use_container_width=True):
+        
+#         # Load model first
+#         with st.spinner("Initializing AI Model (First run may take a minute)..."):
+#             skill_extractor = load_bert_model()
+            
+#         # Run Pipeline with Status Updates
+#         with st.status("🛠️ Processing Career Pipeline...", expanded=True) as status:
+#             st.write("Step 1: Cleaning & Experience Mapping...")
+#             # Pipeline starts here
+#             results = run_full_pipeline(uploaded_file, skill_extractor, selected_dates)
+            
+#             st.session_state['final_data'] = results
+#             status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
+            
+#         st.balloons()
+
+# # --- 6. DASHBOARD VISUALIZATION ---
+# if 'final_data' in st.session_state:
+#     data_dict = st.session_state['final_data']
+    
+#     st.sidebar.header("2. Dashboard Filters")
+#     selected_prof = st.sidebar.selectbox("Select Profession", list(data_dict.keys()))
+#     top_n = st.sidebar.slider("Number of Skills to Show", 10, 100, 50)
+    
+#     full_df = data_dict[selected_prof]
+#     df_display = full_df.head(top_n)
+
+#     # Line Chart: Skill Trajectory
+#     st.subheader(f"📈 Skill Trajectory: {selected_prof}")
+#     target_skill = st.selectbox("Analyze Career Path for Skill:", full_df["skills_found"].to_list())
+    
+#     skill_row = full_df.filter(pl.col("skills_found") == target_skill)
+#     if not skill_row.is_empty():
+#         plot_df = pd.DataFrame({
+#             "Level": ["Junior", "Mid-level", "Senior"],
+#             "Market Share (%)": [
+#                 float(skill_row["Junior"][0]), 
+#                 float(skill_row["Mid-level"][0]), 
+#                 float(skill_row["Senior"][0])
+#             ]
+#         })
+#         fig = px.line(
+#             plot_df, x="Level", y="Market Share (%)", markers=True, 
+#             text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]], 
+#             title=f"Trend for '{target_skill}'"
+#         )
+#         fig.update_traces(textposition="top center", line_color="#007bff", marker_size=10)
+#         fig.update_layout(yaxis_range=[0, max(plot_df["Market Share (%)"]) * 1.5])
+#         st.plotly_chart(fig, use_container_width=True)
+
+#     # Strategic Insights
+#     st.divider()
+#     st.subheader("💡 Strategic Insights")
+#     col1, col2, col3 = st.columns(3)
+
+#     with col1:
+#         st.info("📉 **Gatekeepers** (Entry-heavy)")
+#         gatekeepers = full_df.filter(pl.col("Junior_to_Senior_Diff") < -1.5).sort("Junior", descending=True).head(5)
+#         for s in gatekeepers["skills_found"].to_list(): st.markdown(f"- {s}")
+
+#     with col2:
+#         st.success("📈 **Differentiators** (Senior-heavy)")
+#         diffs = full_df.filter(pl.col("Junior_to_Senior_Diff") > 0.5).sort("Senior", descending=True).head(5)
+#         for s in diffs["skills_found"].to_list(): st.markdown(f"- {s}")
+
+#     with col3:
+#         st.warning("🌉 **Bridge Skills** (Mid-level Peak)")
+#         bridges = full_df.filter(
+#             (pl.col("Mid-level") > pl.col("Junior")) & 
+#             (pl.col("Mid-level") > pl.col("Senior"))
+#         ).sort("Mid-level", descending=True).head(5)
+#         for s in bridges["skills_found"].to_list(): st.markdown(f"- {s}")
+
+#     # Full Data Table
+#     st.subheader("🔍 Full Evolution Matrix")
+#     st.dataframe(
+#         df_display.to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), 
+#         use_container_width=True
+#     )
+
+#     # --- ADD THIS EXPLANATION BLOCK HERE ---
+#     with st.expander("📖 How to read this Matrix"):
+#         st.markdown("""
+#         This table tracks the **Market Share** of specific skills across different seniority levels.
+        
+#         * **Junior / Mid-level / Senior**: These columns represent the percentage of job postings at that level that require the skill. (Eg. In the 'Senior' category, X% of job postings require this specific skill.)
+#         * **Junior_to_Senior_Diff**: The absolute change in market share via Senior% - Junior%
+#             * *Positive (+)*: This skill is more common among Senior job postings. (eg. if 'Cloud computing' has a +30%, it proves that this skill is a requirement to move up the career ladder from Junior to Senior job roles.)
+#             * *Negative (-)*: This skill is more common among Junior job postings. It's a "Gatekeeper" skill—vital for entry but assumed or less emphasized at senior levels.
+#         * **Total_Rel_Change_Pct**: The growth rate of the skill's importance as defined by [(Senior-Junior)/Junior]x100. Hence it is calculating relative growth ie. shows how much faster a skill grows in importance compared to where it started. (eg. an absolute difference might be small like 5% but if the Total_Rel_Change_Pct is 400%, it means that the skill is almost exclusively found in Senior job postings.)
+#             * 🟩 **Green (High %)**: Explosive growth in demand as seniority increases.
+#             * 🟥 **Red (Negative %)**: Sharp decline in explicit mentions as you move toward Senior roles.
+#         """)
+
+# else:
+#     st.info("👋 Ready to start. Please upload your dataset in the sidebar and run the analysis.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#SNOWFLAKE + XAI
 # SNOWFLAKE
 import streamlit as st
 import polars as pl
@@ -506,7 +735,6 @@ st.markdown("""
 # --- 2. MODEL LOADING (CACHED) ---
 @st.cache_resource
 def load_bert_model():
-    """Loads the BERT NER model once and keeps it in memory."""
     return pipeline(
         "ner", 
         model="Nucha/Nucha_ITSkillNER_BERT", 
@@ -514,22 +742,7 @@ def load_bert_model():
         device=-1 
     )
 
-# # --- 3. PIPELINE ORCHESTRATOR ---
-# def run_full_pipeline(uploaded_file, skill_extractor, date_range):
-#     """Executes the modular pipeline sequentially."""
-    
-#     # Stage 1: Cleaning & Date Filtering
-#     cleaned_df = cleaning.run_cleaning(uploaded_file, date_range)
-    
-#     # Stage 2: Preprocessing (BERT extraction & Fuzzy matching)
-#     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
-    
-#     # Stage 3: Analysis (Career Evolution Metrics)
-#     results = analysis.run_analysis(patterns)
-    
-#     return results
-
-
+# --- 3. PIPELINE ORCHESTRATOR ---
 def run_full_pipeline(uploaded_file, skill_extractor, date_range):
     # Stage 1: Returns TWO items now
     cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
@@ -540,7 +753,8 @@ def run_full_pipeline(uploaded_file, skill_extractor, date_range):
     # Stage 3: Analysis now uses the true_totals
     results = analysis.run_analysis(patterns, true_totals)
     
-    return results
+    # FIX: Return true_totals and patterns for Explainability
+    return results, true_totals, patterns
 
 # --- 4. UI LAYOUT ---
 st.title("🚀 Job Posting Analysis Tool")
@@ -550,7 +764,6 @@ with st.sidebar:
     st.header("1. Data Upload & Filters")
     uploaded_file = st.file_uploader("Choose Excel File (dtcExtract.xlsx)", type="xlsx")
     
-    # Date Range Filter
     selected_dates = st.date_input(
         "Application Date Range",
         value=(pd.to_datetime("2024-01-01"), pd.to_datetime("2024-12-31")),
@@ -565,18 +778,17 @@ with st.sidebar:
 # --- 5. EXECUTION CONTROLS ---
 if uploaded_file and 'final_data' not in st.session_state:
     if st.button("⚡ Run Full Analysis Pipeline", use_container_width=True):
-        
-        # Load model first
-        with st.spinner("Initializing AI Model (First run may take a minute)..."):
+        with st.spinner("Initializing AI Model..."):
             skill_extractor = load_bert_model()
             
-        # Run Pipeline with Status Updates
         with st.status("🛠️ Processing Career Pipeline...", expanded=True) as status:
             st.write("Step 1: Cleaning & Experience Mapping...")
-            # Pipeline starts here
-            results = run_full_pipeline(uploaded_file, skill_extractor, selected_dates)
+            # Pipeline now returns 3 objects
+            results, true_totals, raw_patterns = run_full_pipeline(uploaded_file, skill_extractor, selected_dates)
             
             st.session_state['final_data'] = results
+            st.session_state['true_totals'] = true_totals
+            st.session_state['raw_patterns'] = raw_patterns
             status.update(label="✅ Analysis Complete!", state="complete", expanded=False)
             
         st.balloons()
@@ -584,15 +796,27 @@ if uploaded_file and 'final_data' not in st.session_state:
 # --- 6. DASHBOARD VISUALIZATION ---
 if 'final_data' in st.session_state:
     data_dict = st.session_state['final_data']
+    true_totals = st.session_state['true_totals']
+    raw_patterns = st.session_state['raw_patterns']
     
     st.sidebar.header("2. Dashboard Filters")
     selected_prof = st.sidebar.selectbox("Select Profession", list(data_dict.keys()))
     top_n = st.sidebar.slider("Number of Skills to Show", 10, 100, 50)
-    
-    full_df = data_dict[selected_prof]
-    df_display = full_df.head(top_n)
 
-    # Line Chart: Skill Trajectory
+    # --- XAI SECTION: RAW COUNTS ---
+    st.subheader("📊 Data Transparency (The Denominators)")
+    t_cols = st.columns(3)
+    # Filter totals for selected profession
+    prof_totals = true_totals.filter(pl.col("jobOpening_professionFinal") == selected_prof)
+    
+    for i, level in enumerate(["Junior", "Mid-level", "Senior"]):
+        count = prof_totals.filter(pl.col("jobOpening_workExperienceYears") == level)["total_unique_jobs"].sum()
+        t_cols[i].metric(f"Total {level} Postings", f"{count} ads")
+    
+    st.divider()
+
+    # --- MAIN CHART ---
+    full_df = data_dict[selected_prof]
     st.subheader(f"📈 Skill Trajectory: {selected_prof}")
     target_skill = st.selectbox("Analyze Career Path for Skill:", full_df["skills_found"].to_list())
     
@@ -606,58 +830,24 @@ if 'final_data' in st.session_state:
                 float(skill_row["Senior"][0])
             ]
         })
-        fig = px.line(
-            plot_df, x="Level", y="Market Share (%)", markers=True, 
-            text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]], 
-            title=f"Trend for '{target_skill}'"
-        )
-        fig.update_traces(textposition="top center", line_color="#007bff", marker_size=10)
-        fig.update_layout(yaxis_range=[0, max(plot_df["Market Share (%)"]) * 1.5])
+        fig = px.line(plot_df, x="Level", y="Market Share (%)", markers=True, text=[f"{v:.1f}%" for v in plot_df["Market Share (%)"]])
         st.plotly_chart(fig, use_container_width=True)
 
-    # Strategic Insights
+    # --- XAI SECTION: EVIDENCE VIEWER ---
+    with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
+        st.write(f"Showing raw text snippets where the AI found **{target_skill}**:")
+        evidence = raw_patterns.filter(
+            (pl.col("skills_found") == target_skill) & 
+            (pl.col("jobOpening_professionFinal") == selected_prof)
+        ).select(["jobOpening_serialNumber", "jobOpening_workExperienceYears", "clean_text"]).head(5)
+        st.dataframe(evidence.to_pandas(), use_container_width=True)
+
+    # --- STRATEGIC INSIGHTS ---
     st.divider()
     st.subheader("💡 Strategic Insights")
     col1, col2, col3 = st.columns(3)
+    # ... (Your existing Strategic Insights code here) ...
 
-    with col1:
-        st.info("📉 **Gatekeepers** (Entry-heavy)")
-        gatekeepers = full_df.filter(pl.col("Junior_to_Senior_Diff") < -1.5).sort("Junior", descending=True).head(5)
-        for s in gatekeepers["skills_found"].to_list(): st.markdown(f"- {s}")
-
-    with col2:
-        st.success("📈 **Differentiators** (Senior-heavy)")
-        diffs = full_df.filter(pl.col("Junior_to_Senior_Diff") > 0.5).sort("Senior", descending=True).head(5)
-        for s in diffs["skills_found"].to_list(): st.markdown(f"- {s}")
-
-    with col3:
-        st.warning("🌉 **Bridge Skills** (Mid-level Peak)")
-        bridges = full_df.filter(
-            (pl.col("Mid-level") > pl.col("Junior")) & 
-            (pl.col("Mid-level") > pl.col("Senior"))
-        ).sort("Mid-level", descending=True).head(5)
-        for s in bridges["skills_found"].to_list(): st.markdown(f"- {s}")
-
-    # Full Data Table
+    # --- FULL DATA TABLE ---
     st.subheader("🔍 Full Evolution Matrix")
-    st.dataframe(
-        df_display.to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), 
-        use_container_width=True
-    )
-
-    # --- ADD THIS EXPLANATION BLOCK HERE ---
-    with st.expander("📖 How to read this Matrix"):
-        st.markdown("""
-        This table tracks the **Market Share** of specific skills across different seniority levels.
-        
-        * **Junior / Mid-level / Senior**: These columns represent the percentage of job postings at that level that require the skill. (Eg. In the 'Senior' category, X% of job postings require this specific skill.)
-        * **Junior_to_Senior_Diff**: The absolute change in market share via Senior% - Junior%
-            * *Positive (+)*: This skill is more common among Senior job postings. (eg. if 'Cloud computing' has a +30%, it proves that this skill is a requirement to move up the career ladder from Junior to Senior job roles.)
-            * *Negative (-)*: This skill is more common among Junior job postings. It's a "Gatekeeper" skill—vital for entry but assumed or less emphasized at senior levels.
-        * **Total_Rel_Change_Pct**: The growth rate of the skill's importance as defined by [(Senior-Junior)/Junior]x100. Hence it is calculating relative growth ie. shows how much faster a skill grows in importance compared to where it started. (eg. an absolute difference might be small like 5% but if the Total_Rel_Change_Pct is 400%, it means that the skill is almost exclusively found in Senior job postings.)
-            * 🟩 **Green (High %)**: Explosive growth in demand as seniority increases.
-            * 🟥 **Red (Negative %)**: Sharp decline in explicit mentions as you move toward Senior roles.
-        """)
-
-else:
-    st.info("👋 Ready to start. Please upload your dataset in the sidebar and run the analysis.")
+    st.dataframe(full_df.head(top_n).to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), use_container_width=True)
