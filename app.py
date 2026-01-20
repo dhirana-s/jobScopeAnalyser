@@ -514,18 +514,31 @@ def load_bert_model():
         device=-1 
     )
 
-# --- 3. PIPELINE ORCHESTRATOR ---
+# # --- 3. PIPELINE ORCHESTRATOR ---
+# def run_full_pipeline(uploaded_file, skill_extractor, date_range):
+#     """Executes the modular pipeline sequentially."""
+    
+#     # Stage 1: Cleaning & Date Filtering
+#     cleaned_df = cleaning.run_cleaning(uploaded_file, date_range)
+    
+#     # Stage 2: Preprocessing (BERT extraction & Fuzzy matching)
+#     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
+    
+#     # Stage 3: Analysis (Career Evolution Metrics)
+#     results = analysis.run_analysis(patterns)
+    
+#     return results
+
+
 def run_full_pipeline(uploaded_file, skill_extractor, date_range):
-    """Executes the modular pipeline sequentially."""
+    # Stage 1: Returns TWO items now
+    cleaned_df, true_totals = cleaning.run_cleaning(uploaded_file, date_range)
     
-    # Stage 1: Cleaning & Date Filtering
-    cleaned_df = cleaning.run_cleaning(uploaded_file, date_range)
-    
-    # Stage 2: Preprocessing (BERT extraction & Fuzzy matching)
+    # Stage 2: Preprocessing
     patterns = preprocessing.run_preprocessing(cleaned_df, skill_extractor)
     
-    # Stage 3: Analysis (Career Evolution Metrics)
-    results = analysis.run_analysis(patterns)
+    # Stage 3: Analysis now uses the true_totals
+    results = analysis.run_analysis(patterns, true_totals)
     
     return results
 

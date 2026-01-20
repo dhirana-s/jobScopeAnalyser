@@ -366,7 +366,7 @@ STOP_WORDS = [
     "solving skills and", "skills", "attention", "organization", "is", "be", "an", "red"
 ]
 
-def run_analysis(df):
+def run_analysis(df, true_totals):
     PROFESSION_COL = 'jobOpening_professionFinal'
     
     # 1. Standardization
@@ -400,20 +400,14 @@ def run_analysis(df):
 
 
 
-
-
-
-
-
-
     # NEW FIXITYYYY
 
-    # 2a. Calculate THE TRUE DENOMINATOR (Unique Job Postings per Level)
-    # We look at the original df before exploding to find how many unique jobs exist
-    unique_jobs_per_level = (
-        df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears"])
-        .agg(pl.col("jobOpening_serialNumber").n_unique().alias("total_unique_jobs"))
-    )
+    # # 2a. Calculate THE TRUE DENOMINATOR (Unique Job Postings per Level)
+    # # We look at the original df before exploding to find how many unique jobs exist
+    # unique_jobs_per_level = (
+    #     df.group_by([PROFESSION_COL, "jobOpening_workExperienceYears"])
+    #     .agg(pl.col("jobOpening_serialNumber").n_unique().alias("total_unique_jobs"))
+    # )
 
     # 2b. Calculate THE NUMERATOR (How many unique jobs have this specific skill?)
     patterns = (
@@ -421,14 +415,24 @@ def run_analysis(df):
         .agg(pl.col("jobOpening_serialNumber").n_unique().alias("jobs_with_skill"))
     )
 
-    # 2c. Join and calculate Share % based on unique jobs
+    # 3. Join with the GOLDEN DENOMINATOR from cleaning.py
     df_norm = patterns.join(
-        unique_jobs_per_level, 
-        on=[PROFESSION_COL, "jobOpening_workExperienceYears"], 
+        true_totals, 
+        left_on=[PROFESSION_COL, "jobOpening_workExperienceYears"],
+        right_on=["jobOpening_professionFinal", "jobOpening_workExperienceYears"],
         how="left"
     ).with_columns(
         (pl.col("jobs_with_skill") / pl.col("total_unique_jobs") * 100).alias("share_pct")
     )
+
+    # # 2c. Join and calculate Share % based on unique jobs
+    # df_norm = patterns.join(
+    #     unique_jobs_per_level, 
+    #     on=[PROFESSION_COL, "jobOpening_workExperienceYears"], 
+    #     how="left"
+    # ).with_columns(
+    #     (pl.col("jobs_with_skill") / pl.col("total_unique_jobs") * 100).alias("share_pct")
+    # )
 
     # END OF NEW FIXITYY
 

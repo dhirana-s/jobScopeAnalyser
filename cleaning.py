@@ -173,5 +173,11 @@ def run_cleaning(uploaded_file, date_range=None):
             "GREATER_TEN_YEARS": "Senior"
         }, default=pl.col("jobOpening_workExperienceYears"))
     )
+
+    # NEW: Capture the absolute truth before BERT processing
+    true_totals = (
+        cleaned_df.group_by(["jobOpening_professionFinal", "jobOpening_workExperienceYears"])
+        .agg(pl.len().alias("total_unique_jobs"))
+    )
     
-    return cleaned_df
+    return cleaned_df, true_totals
