@@ -1026,6 +1026,12 @@ if uploaded_file and 'final_data' not in st.session_state:
 # --- 6. DASHBOARD VISUALIZATION ---
 if 'final_data' in st.session_state:
     data_dict = st.session_state['final_data']
+
+    # ADD THIS SAFETY CHECK:
+    if not isinstance(data_dict, dict):
+        st.error("Data processing failed or returned an invalid format. Please re-run the pipeline.")
+        st.stop()
+
     true_totals = st.session_state['true_totals']
     raw_patterns = st.session_state['raw_patterns']
     
@@ -1104,7 +1110,7 @@ if 'final_data' in st.session_state:
                 template="plotly_white"
             )
             fig.update_traces(line_color='#636EFA', line_width=3)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         # --- XAI SECTION: EVIDENCE VIEWER ---
         with st.expander(f"🔍 Explainable AI: Why is '{target_skill}' at this percentage?"):
@@ -1142,7 +1148,7 @@ if 'final_data' in st.session_state:
                 )
 
             # --- STEP 4: DISPLAY TABLE ---
-            st.dataframe(filtered_evidence.to_pandas(), use_container_width=True)
+            st.dataframe(filtered_evidence.to_pandas(), width="stretch")
             st.caption(f"Showing {len(filtered_evidence)} rows after filtering.")
 
 
@@ -1173,7 +1179,7 @@ if 'final_data' in st.session_state:
         st.subheader("🔍 Insights Detailed")
         st.dataframe(
             full_df.head(top_n).to_pandas().style.background_gradient(subset=["Total_Rel_Change_Pct"], cmap="RdYlGn"), 
-            use_container_width=True
+            width="stretch"
         )
     else:
         st.warning(f"No skill data found for {selected_prof} after filtering.")
